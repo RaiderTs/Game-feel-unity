@@ -118,20 +118,19 @@ public class PlayerController : MonoBehaviour
 			return;
 		}
 
-		if (_doubleJumpAvailable)
+		if (CheckGrounded())     // Прыжок с земли (обычный прыжок)
 		{
+			OnJump?.Invoke();
+		}
+		else if (_coyoteTimer > 0f)   // Coyote time прыжок (прыжок в течение короткого времени после покидания земли)
+		{
+			OnJump?.Invoke();
+			_doubleJumpAvailable = true;
+		}
+		else if (_doubleJumpAvailable)  // Двойной прыжок (только если доступен и мы в воздухе)
+		{
+			OnJump?.Invoke();
 			_doubleJumpAvailable = false;
-			OnJump?.Invoke();
-		}
-		else if (_coyoteTimer > 0f)
-		{
-			OnJump?.Invoke();
-			_doubleJumpAvailable = true;
-		}
-		else if (CheckGrounded())
-		{
-			_doubleJumpAvailable = true;
-			OnJump?.Invoke();
 		}
 	}
 
@@ -140,6 +139,7 @@ public class PlayerController : MonoBehaviour
 		if (CheckGrounded())
 		{
 			_coyoteTimer = _coyoteTime;
+			_doubleJumpAvailable = true; // доступность двойного прыжка
 		}
 		else
 		{
