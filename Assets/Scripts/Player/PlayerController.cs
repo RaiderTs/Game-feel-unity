@@ -1,10 +1,10 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+	public static Action OnJump;
+
 	public static PlayerController Instance;
 
 	[SerializeField] private Transform _feetTransform;
@@ -15,6 +15,7 @@ public class PlayerController : MonoBehaviour
 	[SerializeField] private float _gravityDelay = 0.2f; // задержка отскока от земли
 
 	private float _timeInAir; // время в воздухе
+	private bool _doubleJumpAvailable; // доступность двойного прыжка
 
 	private PlayerInput _playerInput;
 	private FrameInput _frameInput;
@@ -32,10 +33,22 @@ public class PlayerController : MonoBehaviour
 		_movement = GetComponent<Movement>(); // получаем компонент Movement
 	}
 
+	// подписываемся на событие
+	private void OnEnable()
+	{
+		OnJump += ApplyJumpForce;
+	}
+
+	private void OnDisable()
+	{
+		OnJump -= ApplyJumpForce;
+	}
+
+
 	private void Update()
 	{
 		GatherInput();
-		Jump();
+		HandleJump();
 		HandleSpriteFlip();
 		Movement();
 		GravityDelay();
@@ -95,17 +108,30 @@ public class PlayerController : MonoBehaviour
 		_movement.SetCurrentDirection(_frameInput.Move.x); // устанавливаем направление движения
 	}
 
-	private void Jump()
+	private void HandleJump()
 	{
 		if (!_frameInput.Jump)
 		{
 			return;
 		}
 
-		if (CheckGrounded())
+		if (_doubleJumpAvailable)
 		{
-			_rigidBody.AddForce(Vector2.up * _jumpStrength, ForceMode2D.Impulse);
+			_doubleJumpAvailable = false;
+			OnJump?.Invoke();
 		}
+		else if (CheckGrounded())
+		{
+			_doubleJumpAvailable = true;
+			OnJump?.Invoke();
+		}
+	}
+
+	private void ApplyJumpForce()
+	{
+		_rigidBody.velocity = Vector2.zero; // обнуляем скорость перед прыжком
+		_timeInAir = 0f; // обнуляем время в воздухе
+		_rigidBody.AddForce(Vector2.up * _jumpStrength, ForceMode2D.Impulse);
 	}
 
 	private void HandleSpriteFlip()
